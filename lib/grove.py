@@ -202,30 +202,36 @@ class SensirionMonitor(object):
     def close(self):
         self.i2c_transceiver.close()
 
+class GroveLCD:
+    def __init__(self, max_rows, max_chars, enabled):
+        self.max_rows = max_rows
+        self.max_chars = max_chars
+        self.enabled = enabled
         
-def process_lcd(text, max_rows, max_chars, r=255, g=0, b=0, scrolling=False):   
-    # NOT IMPLEMENTED #
-    return
-    total_chars = len(text)
-    if total_chars > (max_chars * max_rows):
-        raise Exception("There are too many characters for the screen!")
+    def process_lcd(self, text, r=255, g=0, b=0, scrolling=False):   
+        if not self.enabled:
+            return
+    
+        total_chars = len(text)
+        if total_chars > (self.max_chars * self.max_rows):
+            raise Exception("There are too many characters for the screen!")
         
-    segments = text.split(' ')
+        segments = text.split(' ')
 
-    rows = []
-    temp_text = ''
-    for segment in segments:
-        pad = ' ' * (max_chars - len(temp_text))
-        if (len(segment) + len(temp_text)) > max_chars:
-            rows.append(temp_text + pad)
-            temp_text = ''
-        elif (len(segment) + len(temp_text) + 1) > max_chars:
-            rows.append(temp_text + pad)
-            temp_text = ''
+        rows = []
+        temp_text = ''
+        for segment in segments:
+            pad = ' ' * (self.max_chars - len(temp_text))
+            if (len(segment) + len(temp_text)) > self.max_chars:
+                rows.append(temp_text + pad)
+                temp_text = ''
+            elif (len(segment) + len(temp_text) + 1) > self.max_chars:
+                rows.append(temp_text + pad)
+                temp_text = ''
 
-        temp_text += segment + ' '
+            temp_text += segment + ' '
             
-    rows.append(temp_text)
+        rows.append(temp_text)
 
-    setRGB(r, g, b)
-    setText(''.join(rows))
+        setRGB(r, g, b)
+        setText(''.join(rows))

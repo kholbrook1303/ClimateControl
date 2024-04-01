@@ -16,13 +16,12 @@ class Config:
             )
         self._process_config(config_path)
         
-        environment = getattr(self, 'general')['environment']
-        if not environment:
-            print (environment)
-            raise Exception("Environment configuration is invalid!")
+        profile = getattr(self, 'general')['profile']
+        if not profile:
+            raise Exception("Environment profile is invalid!")
         
         env_config_path = os.path.join(
-            APP_ROOT, 'conf', 'environment', environment + '.conf'
+            APP_ROOT, 'conf', 'profiles', profile + '.conf'
             )
         self._process_config(env_config_path)
         
