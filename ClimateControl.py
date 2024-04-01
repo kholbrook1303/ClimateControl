@@ -11,7 +11,7 @@ from lib.config import Config, APP_ROOT
 from lib.common import celsiusToFarenheit
 from lib.enums import RelayState
 from lib.log import log_init
-from lib.grove import SensirionMonitor, GroveRelay, process_lcd
+from lib.grove import SensirionMonitor, GroveRelay, GroveLCD
 
 log = logging.getLogger("ClimateControl")
 
@@ -19,10 +19,17 @@ class ClimateControlMain():
 
     def __init__(self,log, config):
         self.config = config
+        
+        self.lcd = GroveLCD(
+            self.config.general['lcd_max_rows'],
+            self.config.general['lcd_max_chars'],
+            self.config.general['lcd_enabled']
+            )
+        
         self.env_vars = dict()
         
         log.info('Initializing ClimateControl... Please be patient')
-        process_lcd('Initializing ClimateControl...', self.config.general['lcd_max_rows'], self.config.general['lcd_max_chars'])
+        self.lcd.process_lcd('Initializing ClimateControl...')
 
         # Initialize relay board
         self.relay = GroveRelay(self.config)
@@ -34,7 +41,7 @@ class ClimateControlMain():
             )
 
         log.info('ClimateControl initialized!  Starting climate control automation')
-        process_lcd('ClimateControl Initialized!', self.config.general['lcd_max_rows'], self.config.general['lcd_max_chars'])
+        self.lcd.process_lcd('ClimateControl Initialized!')
         time.sleep(1)
 
     def run(self):        
@@ -167,9 +174,8 @@ class ClimateControlMain():
                     log.exception('Failed to process environment variable: {}'.format(env))
             
             if deviations > 0 or previous_hour != current_hour:
-                process_lcd(
+                self.lcd.process_lcd(
                     '{}ppm {}F {}%RH'.format(current_co2, current_temp, current_humidity),
-                    self.config.general['lcd_max_rows'], self.config.general['lcd_max_chars'],
                     0, 0, 100
                     )
                 log.info(
@@ -182,27 +188,15 @@ class ClimateControlMain():
                     previous_hour = current_hour
 
     def close(self):
-        process_lcd(
-            'De-initializing ClimateControl...', 
-            self.config.general['lcd_max_rows'], self.config.general['lcd_max_chars'],
-            255, 0, 0
-            )
+        self.lcd.process_lcd('De-initializing ClimateControl...', 255, 0, 0)
         log.info('De-initializing ClimateControl... Please be patient')
         
         self.scd4x.close()
         
-        process_lcd(
-            'ClimateControl De-initialized', 
-            self.config.general['lcd_max_rows'], self.config.general['lcd_max_chars'],
-            255, 0, 0
-            )
+        self.lcd.process_lcd('ClimateControl De-initialized', 255, 0, 0)
         time.sleep(2)
         
-        process_lcd(
-            'ClimateControl is offline', 
-            self.config.general['lcd_max_rows'], self.config.general['lcd_max_chars'],
-            255, 0, 0
-            )
+        self.lcd.process_lcd('ClimateControl is offline', 255, 0, 0)
 
 def main ():
     config = Config()
