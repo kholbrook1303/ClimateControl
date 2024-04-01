@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{59b59690-b4fd-46b4-9b92-0858c31239f6}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>
+    </StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId>
+    </InterpreterId>
+    <Name>ClimateControl</Name>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="testing\button_test.py" />
+    <Compile Include="testing\co2_test.py" />
+    <Compile Include="testing\display_test.py" />
+    <Compile Include="testing\grove_spdt_relay.py" />
+    <Compile Include="lib\common.py" />
+    <Compile Include="lib\config.py" />
+    <Compile Include="lib\db.py" />
+    <Compile Include="lib\enums.py" />
+    <Compile Include="lib\log.py" />
+    <Compile Include="lib\grove.py" />
+    <Compile Include="ClimateControl.py" />
+    <Compile Include="testing\relay_test.py" />
+    <Compile Include="testing\sensor_test.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="conf\environment\colonisation.conf" />
+    <Content Include="conf\environment\fruiting.conf" />
+    <Content Include="images\cam_157_10.jpg" />
+    <Content Include="images\cam_157_11.jpg" />
+    <Content Include="images\cam_157_12.jpg" />
+    <Content Include="images\cam_157_13.jpg" />
+    <Content Include="images\cam_157_14.jpg" />
+    <Content Include="images\cam_157_15.jpg" />
+    <Content Include="images\cam_157_16.jpg" />
+    <Content Include="images\cam_157_17.jpg" />
+    <Content Include="images\cam_157_18.jpg" />
+    <Content Include="images\cam_157_19.jpg" />
+    <Content Include="images\cam_157_8.jpg" />
+    <Content Include="images\cam_157_9.jpg" />
+    <Content Include="images\cam_158_10.jpg" />
+    <Content Include="images\cam_158_11.jpg" />
+    <Content Include="images\cam_158_12.jpg" />
+    <Content Include="images\cam_158_13.jpg" />
+    <Content Include="images\cam_158_14.jpg" />
+    <Content Include="images\cam_158_15.jpg" />
+    <Content Include="images\cam_158_16.jpg" />
+    <Content Include="images\cam_158_17.jpg" />
+    <Content Include="images\cam_158_18.jpg" />
+    <Content Include="images\cam_158_19.jpg" />
+    <Content Include="images\cam_158_8.jpg" />
+    <Content Include="images\cam_158_9.jpg" />
+    <Content Include="images\cam_159_10.jpg" />
+    <Content Include="images\cam_159_11.jpg" />
+    <Content Include="images\cam_159_12.jpg" />
+    <Content Include="images\cam_159_13.jpg" />
+    <Content Include="images\cam_159_14.jpg" />
+    <Content Include="images\cam_159_15.jpg" />
+    <Content Include="images\cam_159_16.jpg" />
+    <Content Include="images\cam_159_17.jpg" />
+    <Content Include="images\cam_159_18.jpg" />
+    <Content Include="images\cam_159_19.jpg" />
+    <Content Include="images\cam_159_8.jpg" />
+    <Content Include="images\cam_159_9.jpg" />
+    <Content Include="images\cam_160_10.jpg" />
+    <Content Include="images\cam_160_11.jpg" />
+    <Content Include="images\cam_160_12.jpg" />
+    <Content Include="images\cam_160_13.jpg" />
+    <Content Include="images\cam_160_14.jpg" />
+    <Content Include="images\cam_160_15.jpg" />
+    <Content Include="images\cam_160_16.jpg" />
+    <Content Include="images\cam_160_17.jpg" />
+    <Content Include="images\cam_160_18.jpg" />
+    <Content Include="images\cam_160_19.jpg" />
+    <Content Include="images\cam_160_8.jpg" />
+    <Content Include="images\cam_160_9.jpg" />
+    <Content Include="images\cam_161_10.jpg" />
+    <Content Include="images\cam_161_8.jpg" />
+    <Content Include="images\cam_161_9.jpg" />
+    <Content Include="images\cam_enabled_158_16.jpg" />
+    <Content Include="images\cam_enabled_158_8.jpg" />
+    <Content Include="images\cam_enabled_159_10.jpg" />
+    <Content Include="images\cam_enabled_159_8.jpg" />
+    <Content Include="images\cam_enabled_159_9.jpg" />
+    <Content Include="images\cam_enabled_160_8.jpg" />
+    <Content Include="images\cam_enabled_161_8.jpg" />
+    <Content Include="conf\ClimateControl.conf" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="conf\environment\" />
+    <Folder Include="images" />
+    <Folder Include="lib\" />
+    <Folder Include="conf\" />
+    <Folder Include="testing\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Interpreter Include="env\">
+      <Id>env</Id>
+      <Version>3.7</Version>
+      <Description>env (Python 3.7 (64-bit))</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>X64</Architecture>
+    </Interpreter>
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>
