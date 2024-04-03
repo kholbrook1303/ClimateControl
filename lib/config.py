@@ -10,7 +10,9 @@ APP_ROOT = os.path.abspath(
     )
 
 class Config:
-    def __init__(self):
+    def __init__(self, testing=False):
+        self.testing = testing
+        
         config_path = os.path.join(
             APP_ROOT, 'conf', 'ClimateControl.conf'
             )

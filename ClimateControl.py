@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 import os
-from threading import Thread
-import grovepi
 import logging
 import time
 
-from picamera import PiCamera
+from threading import Thread
 
-from lib.config import Config, APP_ROOT
-from lib.common import celsiusToFarenheit
+from lib.config import Config
 from lib.enums import RelayState
 from lib.log import log_init
 from lib.grove import SensirionMonitor, GroveRelay, GroveLCD
@@ -20,11 +17,7 @@ class ClimateControlMain():
     def __init__(self,log, config):
         self.config = config
         
-        self.lcd = GroveLCD(
-            self.config.general['lcd_max_rows'],
-            self.config.general['lcd_max_chars'],
-            self.config.general['lcd_enabled']
-            )
+        self.lcd = GroveLCD(self.config)
         
         self.env_vars = dict()
         
@@ -35,23 +28,16 @@ class ClimateControlMain():
         self.relay = GroveRelay(self.config)
         
         # Initialize scd4x
-        self.scd4x = SensirionMonitor(
-            self.config.general['scd4x_sensor_path'],
-            self.config.general['scd4x_sensor_altitude']
-            )
+        self.scd4x = SensirionMonitor(self.config)
 
         log.info('ClimateControl initialized!  Starting climate control automation')
         self.lcd.process_lcd('ClimateControl Initialized!')
-        time.sleep(1)
+        
+        self.co2 = None
+        self.temp = None
+        self.humidity = None
 
-    def run(self):        
-        # camera = None
-        # try:
-        #     camera = PiCamera()
-        #     camera.resolution = (3280, 2464)
-        # except:
-        #     pass
-
+    def run(self):
         # Set the starting hour
         previous_hour = -1
         
@@ -63,11 +49,10 @@ class ClimateControlMain():
             self.env_vars[env_var]['thread'] = Thread()
 
         self.scd4x.read_wait_scd4x()
-        current_co2, current_temp, current_humidity = self.scd4x.get_env_vars()
+        self.co2, self.temp, self.humidity = self.scd4x.get_env_vars()
         
         while True:
             self.scd4x.read_wait_scd4x()
-            actual_co2, actual_temp, actual_humidity = self.scd4x.get_env_vars()
                 
             deviations = 0
             current_time = time.localtime(time.time())
@@ -86,25 +71,25 @@ class ClimateControlMain():
                     else:
                         comparative = None
                         if env == 'env_temp':
-                            comparative = current_temp
+                            comparative = self.temp
                             
-                            if current_temp != actual_temp:
+                            if self.temp != self.scd4x.tempF:
                                 deviations += 1
-                                current_temp = actual_temp
+                                self.temp = self.scd4x.tempF
                                 
                         elif env == 'env_humidity':
-                            comparative = current_humidity
+                            comparative = self.humidity
                             
-                            if current_humidity != actual_humidity:
+                            if self.humidity != self.scd4x.humidity:
                                 deviations += 1
-                                current_humidity = actual_humidity
+                                self.humidity = self.scd4x.humidity
                                 
                         elif env == 'env_co2':
-                            comparative = current_co2
+                            comparative = self.co2
                             
-                            if current_co2 != actual_co2:
+                            if self.co2 != self.scd4x.co2:
                                 deviations += 1
-                                current_co2 = actual_co2
+                                self.co2 = self.scd4x.co2
                         
                         if comparative <= float(env_config['min_threshold']):
                             enable_min_function = True
@@ -175,12 +160,12 @@ class ClimateControlMain():
             
             if deviations > 0 or previous_hour != current_hour:
                 self.lcd.process_lcd(
-                    '{}ppm {}F {}%RH'.format(current_co2, current_temp, current_humidity),
+                    '{}ppm {}F {}%RH'.format(self.co2, self.temp, self.humidity),
                     0, 0, 100
                     )
                 log.info(
                     '{}ppm {}F {}%RH'.format(
-                        current_co2, current_temp, current_humidity
+                        self.co2, self.temp, self.humidity
                         )
                     )
                 
