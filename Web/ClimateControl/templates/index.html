@@ -1,0 +1,64 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<div class="container text-center">
+    </br>
+    <div class="card-group">
+        {% for variable in current_variables %}
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{variable["identity"]}}</h5>
+                <p class="card-text">{{variable["current_measurement"]}}{{variable["unit"]|safe}}</p>
+                <p class="card-text"><small class="text-muted">Last updated {{variable["current_time"]}}</small></p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <br><br>
+
+    <!--<div class="col-lg">
+        <form method="GET">
+           <label for="timespan_interval">Time Span</label>
+           <input type="text" name="timespan_interval" id="timespan_interval" placeholder="hhmm" /><br /><br />
+
+           <p>or</p>
+
+           <label for="timespan">Time Span</label>
+           <select name="timespan" id="timespan">
+               <option value="0">Select Below</option>
+               <option value="6">6 hour</option>
+               <option value="12">12 hour</option>
+               <option value="24">24 hour</option>
+               <option value="48">48 hours</option>
+               <option value="72">72 hours</option>
+           </select>
+
+           <label for="interval">Time Interval</label>
+           <select name="interval" id="interval">
+               <option value="5">5 minutes</option>
+               <option value="15">15 minutes</option>
+               <option value="30">30 minutes</option>
+               <option value="60">60 minutes</option>
+           </select>
+           <button type="submit">submit</button>
+        </form>
+    </div>
+    <br>-->
+
+    <p>See below for trending climate variables:</p>
+    <br>
+
+    {{ js_resources|indent(4)|safe }}
+    {{ css_resources|indent(4)|safe }}
+    {{ plot_script|safe }}
+
+    <div class='bokeh' align="center">
+        {% for plot_div in plot_divs %}
+        {{ plot_div|safe }}
+        <br />
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}
