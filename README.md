@@ -17,5 +17,6 @@ Climate Control for Raspberry Pi with Grove board using a Sensirion scd41 to mea
 
 ## Install requirements for Sensirion scd41
 ```
-pip install sensirion_i2c_sht4x
+pip3 install sensirion_i2c_sht4x
+pip3 install -r requirements.txt
 ```

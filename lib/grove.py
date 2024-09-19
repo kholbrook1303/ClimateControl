@@ -10,31 +10,14 @@ from sensirion_i2c_driver import LinuxI2cTransceiver, I2cConnection
 from sensirion_i2c_scd import Scd4xI2cDevice
 from threading import Thread
 
-from lib.db import Mongo
-from lib.enums import RelayState
+from lib.abstracts import Sensor
 from lib.common import celsiusToFarenheit
+from lib.properties import RelayState
 
-log = logging.getLogger(__name__)
-
-class GroveDevice(object):
-    def __init__(self, config):
-        self._config = config
-        
-    def _update_sensor_database(self, data):
-        if not self._config.testing:
-            mdb = Mongo(**{
-                'uri': self._config.mongodb['uri'],
-                'database': self._config.mongodb['database'],
-                'collection': 'SensorOutput',
-                })
-            mdb.collection.insert_one(data)
-            mdb.close()
-        
-    def _close(self):
-        pass
+log = logging.getLogger()
         
 # https://sensirion.github.io/python-i2c-scd/
-class SensirionMonitor(GroveDevice):
+class SensirionMonitor(Sensor):
     def __init__(self, config, calibrate=False, target_ppm=400):
         super().__init__(config)
         
@@ -111,40 +94,27 @@ class SensirionMonitor(GroveDevice):
         
     def read_scd4x(self, farenheit=True):
         # Ensure status is ready to read, then read variables
-        if self.scd4x.get_data_ready_status():
-            co2, temp, humidity = self.scd4x.read_measurement()
+        try:
+            if self.scd4x.get_data_ready_status():
+                co2, temp, humidity = self.scd4x.read_measurement()
             
-            self.co2 = co2.co2
-            self.tempC =temp.degrees_celsius
-            self.tempF = temp.degrees_fahrenheit
-            self.humidity = humidity.percent_rh
+                self.co2 = co2.co2
+                self.tempC = temp.degrees_celsius
+                self.tempF = temp.degrees_fahrenheit
+                self.humidity = humidity.percent_rh
             
-            current_date = datetime.utcnow()
-            self._update_sensor_database({
-                'date': current_date, 
-                'var': 'co2', 
-                'value': self.co2}
-                )
+                current_date = datetime.utcnow()
+                self._update_sensor_database(current_date, 'co2', self.co2)
+                self._update_sensor_database(current_date, 'tempF', self.tempF)
+                self._update_sensor_database(current_date, 'tempC', self.tempC)
+                self._update_sensor_database(current_date, 'humidity', self.humidity)
             
-            self._update_sensor_database({
-                'date': current_date, 
-                'var': 'tempF', 
-                'value': self.tempF
-                })
+                return True
             
-            self._update_sensor_database({
-                'date': current_date, 
-                'var': 'tempC', 
-                'value': self.tempC
-                })
-            
-            self._update_sensor_database({
-                'date': current_date,
-                'var': 'humidity', 
-                'value': self.humidity
-                })
-            
-            return True
+        except Exception as e:
+            log.exception('Failed to read sensor: {}'.format(e))
+                
+            return False
         
         return False
     
@@ -163,13 +133,11 @@ class SensirionMonitor(GroveDevice):
         self.i2c_transceiver.close()
         self._close()
 
-class GroveRelay(GroveDevice):
+class GroveRelay(object):
     def __init__(self, config):
-        super().__init__(config)
-        
-        self.i2c_bus        = self._config.general['i2c_bus']
-        self.i2c_address    = self._config.general['grove_relay_bus']
-        self.i2c_command    = self._config.general['grove_relay_command']
+        self.i2c_bus        = config.general['i2c_bus']
+        self.i2c_address    = config.general['grove_relay_bus']
+        self.i2c_command    = config.general['grove_relay_command']
         
         self.channel_state = 0
         self.bus = smbus.SMBus(self.i2c_bus)
@@ -192,41 +160,39 @@ class GroveRelay(GroveDevice):
         
         return thread
         
-    def _turn_on_channel(self, channel, device, env_config, sleep_timer):
+    def _turn_on_channel(self, channel, device, var_control, sleep_timer):
         self.channel_state |= (1 << (channel - 1))
         
         log.info('Enabling channel:{} Device:{}'.format(channel, device))
         self.bus.write_byte_data(self.i2c_address, self.i2c_command, self.channel_state)
-        env_config['status'] = RelayState.On
+        var_control.control_status = RelayState.On
         
         self._manage_sleep(sleep_timer)
 
-    def _turn_off_channel(self, channel, device, env_config, sleep_timer):
+    def _turn_off_channel(self, channel, device, var_control, sleep_timer):
         self.channel_state &= ~(1 << (channel - 1))
         
         log.info('Disabling channel:{} Device:{}'.format(channel, device))
         self.bus.write_byte_data(self.i2c_address, self.i2c_command, self.channel_state)
-        env_config['status'] = RelayState.Off
+        var_control.control_status = RelayState.Off
         
         self._manage_sleep(sleep_timer)
         
-    def turn_on_channel(self, channel, device, env_config):
-        if env_config['threaded']:
-            thread = self._thread_function(self._turn_on_channel, *(channel, device, env_config, env_config['thread_sleep']))
-            env_config['thread'] = thread
+    def turn_on_channel(self, channel, device, var_control):
+        if var_control.control_threaded:
+            thread = self._thread_function(self._turn_on_channel, *(channel, device, var_control, var_control.control_thread_sleep))
+            var_control.control_thread = thread
         else:
-            self._turn_on_channel(channel, device, env_config, 0)
+            self._turn_on_channel(channel, device, var_control, 0)
         
-    def turn_off_channel(self, channel, device, env_config):
-        self._turn_off_channel(channel, device, env_config, False)
+    def turn_off_channel(self, channel, device, var_control):
+        self._turn_off_channel(channel, device, var_control, False)
 
-class GroveLCD(GroveDevice):
-    def __init__(self, config):
-        super().__init__(config)
-        
-        self.max_rows = self._config.general['lcd_max_rows']
-        self.max_chars = self._config.general['lcd_max_chars']
-        self.enabled = self._config.general['lcd_enabled']
+class GroveLCD(object):
+    def __init__(self, config):        
+        self.max_rows = config.general['lcd_max_rows']
+        self.max_chars = config.general['lcd_max_chars']
+        self.enabled = config.general['lcd_enabled']
         
     def process_lcd(self, text, r=255, g=0, b=0, scrolling=False, sleep_time=0):   
         if not self.enabled:

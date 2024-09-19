@@ -1,19 +1,15 @@
 #!/usr/bin/env python
-import os
 import logging
 import time
 
-from threading import Thread
-
 from lib.config import Config
-from lib.enums import RelayState
+from lib.properties import RelayState, ClimateControlVariable
 from lib.log import log_init
 from lib.grove import SensirionMonitor, GroveRelay, GroveLCD
 
 log = logging.getLogger("ClimateControl")
 
 class ClimateControlMain():
-
     def __init__(self,log, config):
         self.config = config
         
@@ -42,11 +38,16 @@ class ClimateControlMain():
         previous_hour = -1
         
         for env_var in self.config.general['env_variables']:
-            env_config = getattr(self.config, env_var)
-            
-            self.env_vars[env_var] = env_config
-            self.env_vars[env_var]['status'] = RelayState.Off
-            self.env_vars[env_var]['thread'] = Thread()
+            var = env_var.replace('env_', '')
+            try:
+                var_control = ClimateControlVariable[var].value
+                for key, val in getattr(self.config, env_var).items():
+                    setattr(var_control, key, val)
+
+                self.env_vars[var] = var_control
+
+            except:
+                log.exception('Unable to load {} as there is no ClimateControlVariable for it'.format(var))
 
         self.scd4x.read_wait_scd4x()
         self.co2, self.temp, self.humidity = self.scd4x.get_env_vars()
@@ -58,105 +59,105 @@ class ClimateControlMain():
             current_time = time.localtime(time.time())
             current_hour = current_time.tm_hour
                 
-            for env, env_config in self.env_vars.items():
+            for var, var_control in self.env_vars.items():
                 try:
                     enable_min_function = False
                     enable_max_function = False
                 
                     # Check environment variable for deviations
-                    if env_config.get('on_hr'):
-                        if current_hour >= env_config['on_hr'] and current_hour < env_config['off_hr']:
+                    if var_control.control_on_hr:
+                        if current_hour >= var_control.control_on_hr and current_hour < var_control.control_off_hr:
                             enable_min_function = True
                         
                     else:
                         comparative = None
-                        if env == 'env_temp':
+                        if var == 'temp':
                             comparative = self.temp
                             
                             if self.temp != self.scd4x.tempF:
                                 deviations += 1
                                 self.temp = self.scd4x.tempF
                                 
-                        elif env == 'env_humidity':
+                        elif var == 'humidity':
                             comparative = self.humidity
                             
                             if self.humidity != self.scd4x.humidity:
                                 deviations += 1
                                 self.humidity = self.scd4x.humidity
                                 
-                        elif env == 'env_co2':
+                        elif var == 'co2':
                             comparative = self.co2
                             
                             if self.co2 != self.scd4x.co2:
                                 deviations += 1
                                 self.co2 = self.scd4x.co2
                         
-                        if comparative <= float(env_config['min_threshold']):
+                        if comparative <= float(var_control.control_min_threshold):
                             enable_min_function = True
-                            if env_config['status'] == RelayState.Off:
+                            if var_control.control_status == RelayState.Off:
                                 log.warning(
                                     '%s (%f%s) has dropped below the threshhold of %f%s' % (
-                                        env.title(),
+                                        var.title(),
                                         comparative,
-                                        env_config['char'],
-                                        float(env_config['min_threshold']),
-                                        env_config['char']
+                                        var_control.control_char,
+                                        float(var_control.control_min_threshold),
+                                        var_control.control_char
                                         )
                                     )
                         
-                        elif comparative >= float(env_config['max_threshold']):
+                        elif comparative >= float(var_control.control_max_threshold):
                             enable_max_function = True
-                            if env_config['status'] == RelayState.On:
+                            if var_control.control_status == RelayState.On:
                                 log.warning(
                                     '%s (%f%s) has raised above the threshhold of %f%s' % (
-                                        env.title(),
+                                        var.title(),
                                         comparative,
-                                        env_config['char'],
-                                        float(env_config['max_threshold']),
-                                        env_config['char']
+                                        var_control.control_char,
+                                        float(var_control.control_max_threshold),
+                                        var_control.control_char
                                         )
                                     )
                                 
-                    if not env_config['enable']:
+                    if not var_control.control_enabled:
                         continue
 
-                    min_function = getattr(self.config, env_config['min_function'], None)
-                    max_function = getattr(self.config, env_config['max_function'], None)
+                    min_function = getattr(self.config, var_control.control_min_function, None)
+                    max_function = getattr(self.config, var_control.control_max_function, None)
                     
                     # Manage environment variable power
-                    if env_config['status'] == RelayState.Off:
+                    if var_control.control_status == RelayState.Off:
                         if enable_min_function and min_function:
                             self.relay.turn_on_channel(
-                                min_function['channel'], min_function['device'], env_config
+                                min_function['channel'], min_function['device'], var_control
                                 )
                         elif enable_max_function and max_function:
                             self.relay.turn_on_channel(
-                                max_function['channel'], max_function['device'], env_config
+                                max_function['channel'], max_function['device'], var_control
                                 )
                             
-                    elif env_config['status'] == RelayState.On:
-                        if env_config['threaded'] and not env_config['thread'].is_alive():
+                    elif var_control.control_status == RelayState.On:
+                        if var_control.control_threaded and not var_control.control_thread.is_alive():
                             if min_function:
                                 self.relay.turn_off_channel(
-                                    min_function['channel'], min_function['device'], env_config
+                                    min_function['channel'], min_function['device'], var_control
                                     )
                             if max_function:
                                 self.relay.turn_off_channel(
-                                    max_function['channel'], max_function['device'], env_config
+                                    max_function['channel'], max_function['device'], var_control
                                     )
                                 
-                        elif not env_config['threaded'] and not enable_min_function and not enable_max_function:
+                        elif not var_control.control_threaded and not enable_min_function and not enable_max_function:
                             if min_function:
                                 self.relay.turn_off_channel(
-                                    min_function['channel'], min_function['device'], env_config
+                                    min_function['channel'], min_function['device'], var_control
                                     )
                             if max_function:
                                 self.relay.turn_off_channel(
-                                    max_function['channel'], max_function['device'], env_config
+                                    max_function['channel'], max_function['device'], var_control
                                     )
                         
                 except:
-                    log.exception('Failed to process environment variable: {}'.format(env))
+                    log.exception('Failed to process environment variable: {}'.format(var))
             
             if deviations > 0 or previous_hour != current_hour:
                 self.lcd.process_lcd(
