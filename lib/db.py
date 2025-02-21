@@ -14,9 +14,9 @@ class SQLite():
     def _initialize(self):
         table_schema = {
             'sensorout': {
-                'date': 'DATE',
-                'var': 'TEXT',
-                'value': 'FLOAT'
+                'date'  : 'DATE',
+                'var'   : 'TEXT',
+                'value' : 'FLOAT'
             }
         }
         

@@ -18,9 +18,10 @@ from bokeh.themes.theme import Theme
 
 sys.path.append('/opt/ClimateControl/')
 
+import lib.controllers
+
 from lib.config import Config
 from lib.db import SQLite
-from lib.properties import ClimateControlVariable
 
 from ClimateControl import app
 
@@ -29,7 +30,6 @@ logging.basicConfig(filename='ccweb.log', level=logging.DEBUG)
 @app.route('/')
 @app.route('/home')
 def home():
-    print (request.args)
     """Renders the ClimateControl page."""
     data = request.args.get('timespan_interval', None)
     if data:
@@ -58,7 +58,7 @@ def home():
         for result in results:
             app.logger.debug(result)
             var = result[5]
-            ccv = ClimateControlVariable[var].value
+            ccv = getattr(lib.controllers, var)(None, None)
             data = int(result[4])
             date = datetime.strptime(result[6], '%Y-%m-%d %H:%M:%S.%f')
             
