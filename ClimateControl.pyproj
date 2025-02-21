@@ -22,7 +22,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="lib\abstracts.py" />
-    <Compile Include="lib\properties.py" />
+    <Compile Include="lib\controllers.py" />
     <Compile Include="testing\button_test.py" />
     <Compile Include="testing\co2_test.py" />
     <Compile Include="testing\display_test.py" />
@@ -3677,7 +3677,6 @@
     <Compile Include="Web\wfastcgi.py" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="conf\profiles\mushroom_colonisation.conf" />
     <Content Include="conf\profiles\mushroom_fruiting.conf" />
     <Content Include="images\cam_157_10.jpg" />
     <Content Include="images\cam_157_11.jpg" />

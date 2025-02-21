@@ -12,7 +12,7 @@ from threading import Thread
 
 from lib.abstracts import Sensor
 from lib.common import celsiusToFarenheit
-from lib.properties import RelayState
+from lib.controllers import RelayState
 
 log = logging.getLogger()
         
@@ -91,6 +91,10 @@ class SensirionMonitor(Sensor):
             round(temp, 2),
             round(self.humidity, 2)
         )
+
+    def get_variable(self, name):
+        var = getattr(self, name)
+        return round(var, 2)
         
     def read_scd4x(self, farenheit=True):
         # Ensure status is ready to read, then read variables
@@ -104,10 +108,10 @@ class SensirionMonitor(Sensor):
                 self.humidity = humidity.percent_rh
             
                 current_date = datetime.utcnow()
-                self._update_sensor_database(current_date, 'co2', self.co2)
-                self._update_sensor_database(current_date, 'tempF', self.tempF)
-                self._update_sensor_database(current_date, 'tempC', self.tempC)
-                self._update_sensor_database(current_date, 'humidity', self.humidity)
+                self._update_sensor_database(current_date, 'CO2', self.co2)
+                self._update_sensor_database(current_date, 'TemperatureFarenheit', self.tempF)
+                self._update_sensor_database(current_date, 'TemperatureCelsius', self.tempC)
+                self._update_sensor_database(current_date, 'Humidity', self.humidity)
             
                 return True
             
@@ -160,33 +164,32 @@ class GroveRelay(object):
         
         return thread
         
-    def _turn_on_channel(self, channel, device, var_control, sleep_timer):
+    def _turn_on_channel(self, channel, device, sleep_timer):
         self.channel_state |= (1 << (channel - 1))
         
         log.info('Enabling channel:{} Device:{}'.format(channel, device))
         self.bus.write_byte_data(self.i2c_address, self.i2c_command, self.channel_state)
-        var_control.control_status = RelayState.On
-        
         self._manage_sleep(sleep_timer)
 
-    def _turn_off_channel(self, channel, device, var_control, sleep_timer):
+    def _turn_off_channel(self, channel, device, sleep_timer):
         self.channel_state &= ~(1 << (channel - 1))
         
         log.info('Disabling channel:{} Device:{}'.format(channel, device))
         self.bus.write_byte_data(self.i2c_address, self.i2c_command, self.channel_state)
-        var_control.control_status = RelayState.Off
-        
         self._manage_sleep(sleep_timer)
         
-    def turn_on_channel(self, channel, device, var_control):
-        if var_control.control_threaded:
-            thread = self._thread_function(self._turn_on_channel, *(channel, device, var_control, var_control.control_thread_sleep))
-            var_control.control_thread = thread
+    def turn_on_channel(self, channel, device, threaded=False, thread_sleep=30):
+        if threaded:
+            thread = self._thread_function(self._turn_on_channel, *(channel, device, thread_sleep))
+            return thread
+
         else:
-            self._turn_on_channel(channel, device, var_control, 0)
+            self._turn_on_channel(channel, device, 0)
+
+        return None
         
-    def turn_off_channel(self, channel, device, var_control):
-        self._turn_off_channel(channel, device, var_control, False)
+    def turn_off_channel(self, channel, device):
+        self._turn_off_channel(channel, device, False)
 
 class GroveLCD(object):
     def __init__(self, config):        
