@@ -3677,7 +3677,7 @@
     <Compile Include="Web\wfastcgi.py" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="conf\profiles\mushroom_fruiting.conf" />
+    <Content Include="conf\profiles\example.conf" />
     <Content Include="images\cam_157_10.jpg" />
     <Content Include="images\cam_157_11.jpg" />
     <Content Include="images\cam_157_12.jpg" />
